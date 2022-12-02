@@ -22,26 +22,13 @@ public class NewsletterController : ControllerBase
     {
         var inserted = _connection.Execute(@"
             
-            DECLARE @isExist int = (SELECT COUNT(Email)
-                FROM NewsletterSubscription s
-                WHERE (s.Email LIKE @Email AND @Email NOT LIKE '%@gmail.com') 
-                    OR (REPLACE(s.Email, '.', '') LIKE REPLACE(@Email, '.', '') AND @Email LIKE '%@gmail.com'))
-                        
-            IF @isExist = 0
-                BEGIN            
-                    INSERT INTO NewsletterSubscription (Email)
+            INSERT INTO NewsletterSubscription (Email)
                         SELECT *
                         FROM ( VALUES (@Email) ) AS V(Email)
-                END
-
-            IF @isExist <> 0
-                BEGIN            
-                    INSERT INTO NewsletterSubscription (Email)
-                        SELECT *
-                        FROM ( VALUES (@Email) ) AS V(Email)
-                        WHERE 1<>1
-                END
-  
+                        WHERE (SELECT COUNT(Email)
+                                FROM NewsletterSubscription s
+                                WHERE (s.Email LIKE @Email AND @Email NOT LIKE '%@gmail.com') 
+                                    OR (REPLACE(s.Email, '.', '') LIKE REPLACE(@Email, '.', '') AND @Email LIKE '%@gmail.com')) = 0 
             
         ", new { Email = Email });
 
