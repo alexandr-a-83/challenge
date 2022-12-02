@@ -21,10 +21,28 @@ public class NewsletterController : ControllerBase
     public ActionResult Subscribe(string Email)
     {
         var inserted = _connection.Execute(@"
-            INSERT INTO NewsletterSubscription (Email)
-            SELECT *
-            FROM ( VALUES (@Email) ) AS V(Email)
-            WHERE NOT EXISTS ( SELECT * FROM NewsletterSubscription e WHERE e.Email = v.Email )
+            
+            DECLARE @isExist int = (SELECT COUNT(Email)
+                FROM NewsletterSubscription s
+                WHERE (s.Email LIKE @Email AND @Email NOT LIKE '%@gmail.com') 
+                    OR (REPLACE(s.Email, '.', '') LIKE REPLACE(@Email, '.', '') AND @Email LIKE '%@gmail.com'))
+                        
+            IF @isExist = 0
+                BEGIN            
+                    INSERT INTO NewsletterSubscription (Email)
+                        SELECT *
+                        FROM ( VALUES (@Email) ) AS V(Email)
+                END
+
+            IF @isExist <> 0
+                BEGIN            
+                    INSERT INTO NewsletterSubscription (Email)
+                        SELECT *
+                        FROM ( VALUES (@Email) ) AS V(Email)
+                        WHERE 1<>1
+                END
+  
+            
         ", new { Email = Email });
 
         return inserted == 0 ? Conflict("email is already subscribed") : Ok();
